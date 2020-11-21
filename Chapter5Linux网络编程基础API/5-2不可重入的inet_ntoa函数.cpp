@@ -1,4 +1,11 @@
 /*                                  1.socket地址API
+    通用socket地址
+#include <bits/socket.h>
+struct sockaddr{
+    sa_family_t sa_family;
+    char sa_char[14];
+}
+
     IPv4专用socket地址结构体
 #include <arpa/inet.h>
 struct sockaddr_in{             socket地址包括  地址族、端口号、IP
