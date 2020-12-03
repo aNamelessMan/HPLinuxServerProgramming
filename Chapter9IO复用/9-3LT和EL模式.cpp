@@ -69,7 +69,7 @@ void et (epoll_event *events, int number, int epollfd, int listenfd){
             struct sockaddr_in client_address;
             socklen_t client_addrlength = sizeof(client_address);
             int connfd = accept(listenfd, (struct sockaddr*)&client_address, &client_addrlength);
-            addfd(epollfd, connfd, true);
+            addfd(epollfd, connfd, true);//开始监听connfd
         }else if(events[i].events & EPOLLIN){
             //这段代码不会被重复触发，所以我们循环读取数据，以确保把socket读缓存中的所有数据读出
             printf("event trigger once\n");
