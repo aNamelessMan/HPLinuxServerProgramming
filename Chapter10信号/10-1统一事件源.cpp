@@ -36,6 +36,7 @@ void sig_handle(int sig){
     int save_errno = errno;
     int msg = sig;
     send(pipefd[1], (char*)&msg, 1, 0);
+    errno = save_errno;
 }
 //设置信号的处理函数
 void addsig(int sig){
