@@ -56,9 +56,9 @@ void addsig(int sig){
 
 void timer_handler(){
     //定时处理任务，实际上就是调用tick函数
-    timer_lst.tick();
+    timer_lst.tick();//查看是否有任务超时，如果有超时则调用回调函数关闭连接，删除定时器，删除注册时间，关闭连接等等
     //因为一次alarm调用只会引起一次SIGALRM信号，所以我们要重新定时，以不断触发SIGALRM信号
-    alarm(TIMESLOT);
+    alarm(TIMESLOT);//timeslot是时钟信号的触发周期，每5s触发一次，来查看是否有任务要处理
 }
 
 //定时器回调函数，它删除非活动连接socket上的注册事件，并关闭之
@@ -146,7 +146,7 @@ int main(int argc, char* argv[]){
                 users[connfd].timer = timer;
                 timer_lst.add_timer(timer);
             }else if((sockfd == pipefd[0]) && (events[i].events & EPOLLIN)){
-                int sig;
+                //int sig;
                 char signals[1024];
                 ret = recv(pipefd[0], signals, sizeof(signals), 0);
                 if(ret == -1){
