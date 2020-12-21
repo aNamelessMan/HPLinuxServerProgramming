@@ -47,3 +47,39 @@ sem_trywait与sem_wait类似，不过它始终立即返回，相当于sem_wait�
 sem_post函数以原子操作的方式将信号量的值加1。当信号量的值大于0时，其他正在调用sem_wait等待信号量的线程将被唤醒。
 上面这些函数成功时返回0。失败时则返回-1并设置errno
 */
+
+/*互斥锁    用于保护关键代码段，以确保其独占式的访问    类似于二进制信号量
+互斥锁基础API
+#include <pthread.h>
+int pthread_mutex_init(pthread_mutex_t* mutex,const pthread_mutexattr_t* mutexattr);
+int pthread_mutex_destory(pthread_mutex_t* mutex);
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+这些函数的第一个参数mutex指向要操作的目标互斥锁，含义类似于信号量
+*/
+
+/*条件变量
+如果说互斥锁是用于  同步线程对共享数据的访问
+那么条件变量是用于  线程之间同步共享数据的值
+条件变量提供了一种机制：当某个共享数据到达某个值的时候，唤醒等待这个共享数据的线程
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t cond_attr);
+int pthread_cond_destory(pthread_cond_t* cond);
+int pthread_cond_broadcast(pthread_cond_t* cond);   唤醒所有等待目标变量的线程
+int pthread_cond_signal(pthread_cond_t* cond);      唤醒一个等待目标变量的线程
+int pthread_cond_wait(pthread_cond_t* cond， pthread_mutex_t* mutex);
+*/
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main(){
+    pthread_mutex_t locka;
+    pthread_mutex_init(&locka, nullptr);
+
+    pthread_mutex_lock(&locka);
+    pthread_mutex_lock(&locka);//在同个线程中将普通锁枷锁之后，再次加锁会导致死锁
+
+    return 0;
+}
