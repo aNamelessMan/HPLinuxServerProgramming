@@ -5,6 +5,16 @@
 #include <wait.h>
 
 pthread_mutex_t mutex;
+
+//14-4  使用pthread_atfork函数
+void prepare(){
+    pthread_mutex_lock(&mutex);
+}
+
+void infork(){
+    pthread_mutex_unlock(&mutex);
+}
+
 //子线程类型的函数。它首先获得互斥锁mutex，然后暂停5s，再释放该互斥锁
 void* another(void* arg){
     printf("in child thread, lock the mutex\n");
@@ -20,6 +30,20 @@ int main(){
     pthread_create(&id, nullptr, another, nullptr);
     //父进程中的主线程暂停1s，以确保在执行fork操作之前，子线程已经开始运行并获得了互斥量mutex
     sleep(1);
+
+    pthread_atfork(prepare, infork, infork);
+    /*
+    #include <pthread.h>
+    int pthread_atfork(void (*prepare)(void), void (*parent)(void), void(*child)(void));
+    用于清理互斥锁的状态
+
+    prepare在fork调用创建出子进程之前被执行，获取/等待/锁住 所有父进程中的互斥锁
+    parent在fork返回之前，在父进程中被执行，释放所有在prepare中被锁住的互斥锁
+    child在fork返回之前，在子进程中被执行，释放所有在prepare中被锁住的互斥锁
+
+    因此fork之后子进程父进程中的锁都处于空闲状态
+    */
+
     int pid = fork();
     if(pid <0){//出错
         pthread_join(id, nullptr);      //等待子线程结束
