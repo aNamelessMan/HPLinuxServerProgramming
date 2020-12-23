@@ -1,4 +1,4 @@
-// filename: processpool.h
+// filename: processpool.h      15-1半同步半异步进程池
 #ifndef PROCESSPOOL_H
 #define PROCESSPOOL_H
 
@@ -51,6 +51,7 @@ class processpool{
         void run_parent();
         void run_child();
     private:
+        //变量声明的相对顺序如果和之后在构造函数初始化列表中的(见cppp   p238)顺序不同，编译器会警告
         //进程池允许的最大子进程数量
         static const int MAX_PROCESS_NUMBER = 16;
         //每个子进程最多能处理的客户数量
@@ -72,7 +73,7 @@ class processpool{
         //进程池静态实例
         static processpool<T>* m_instance;
 };
-template<typename T>
+template<typename T>    //见cppp    P270    静态成员必须在类的外部定义和初始化
 processpool<T>* processpool<T>::m_instance = nullptr;
 
 //用于处理信号的管道，以实现统一事件源。后面称之为信号管道
@@ -119,7 +120,7 @@ static void addsig(int sig, void(handler)(int), bool restart = true){
 
 //进程池构造函数。参数listenfd是监听socket，它必须在创建进程池之前被创建，否则子进程无法直接引用它。参数process_number指定进程池中子进程的数量
 template<typename T>
-processpool<T>::processpool(int listenfd, int process_number):m_listenfd(listenfd), m_process_number(process_number), m_idx(-1), m_stop(false){
+processpool<T>::processpool(int listenfd, int process_number):m_process_number(process_number), m_idx(-1), m_listenfd(listenfd), m_stop(false){
     assert((process_number > 0) && (process_number <= MAX_PROCESS_NUMBER));
     m_sub_process = new process[process_number];
     assert(m_sub_process);
@@ -130,12 +131,12 @@ processpool<T>::processpool(int listenfd, int process_number):m_listenfd(listenf
         assert(ret == 0);
 
         m_sub_process[i].m_pid = fork();
-        assert(m_sub_process[i].m_pid >= 0)
+        assert(m_sub_process[i].m_pid >= 0);
         if(m_sub_process[i].m_pid > 0){
-            close(m_sub_process[i].m_pipefd[1]);
+            close(m_sub_process[i].m_pipefd[1]);//子进程保留读端口
             continue;
         }else{
-            close(m_sub_process[i].m_pipefd[0]);
+            close(m_sub_process[i].m_pipefd[0]);//父进程保留写端口
             m_idx = i;
             break;
         }
@@ -215,7 +216,7 @@ void processpool<T>::run_child(){
             }
             //下面处理子进程接收到的信号
             else if((sockfd == sig_pipefd[0]) && (events[i].events & EPOLLIN)){
-                int sig;
+                //int sig;
                 char signals[1024];
                 ret = recv(sig_pipefd[0], signals, sizeof(signals), 0);
                 if(ret <= 0){
@@ -267,7 +268,7 @@ void processpool<T>::run_parent(){
     addfd(m_epollfd, m_listenfd);
 
     epoll_event events[MAX_EVENT_NUMBER];
-    int sub_process_counter = 0;
+    int sub_process_counter = 0;//是下个任务应该分配的线程idx
     int new_conn = 1;
     int number = 0;
     int ret = -1;
@@ -301,7 +302,7 @@ void processpool<T>::run_parent(){
             }
             //下面处理父进程接收到的信号
             else if((sockfd == sig_pipefd[0]) && (events[i].events & EPOLLIN)){
-                int sig;
+                //int sig;
                 char signals[1024];
                 ret = recv(sig_pipefd[0], signals, sizeof(signals), 0);
                 if(ret <= 0){
@@ -334,14 +335,29 @@ void processpool<T>::run_parent(){
                             case SIGTERM:
                             case SIGINT:{
                                 //如果父进程接收到终止信号，那么就杀死所有子进程，并等待它们全部结束。当然，通知子进程结束更好地方法是向父、子进程之间的通信管道发送特殊数据，读者不妨自己实现之
-                                
+                                printf("kill all the child now\n");
+                                for(int i = 0; i < m_process_number; i++){
+                                    int pid = m_sub_process[i].m_pid;
+                                    if(pid != -1){
+                                        kill(pid, SIGTERM);
+                                    }
+                                }
+                                break;
+                            }
+                            default:{
+                                break;
                             }
                         }
                     }
                 }
             }
+            else{
+                continue;
+            }
         }
     }
+    //close(m_listenfd);    由创建者关闭这个文件描述符
+    close(m_epollfd);
 }
 
 #endif
