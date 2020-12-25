@@ -28,7 +28,7 @@ class threadpool{
         pthread_t* m_threads;   //描述线程池的数组，其大小为m_thread_number
         std::list<T*> m_workqueue;  //请求队列
         locker m_queuelocker;   //保护请求队列的互斥锁
-        sem m_queuestat;        //是否有任务需要处理
+        sem m_queuestat;        //是否有任务需要处理    初始化为0，表示没有任务，有任务到来时将信号量post加一，唤醒wait的线程
         bool m_stop;            //是否结束线程
 };
 
@@ -50,7 +50,7 @@ threadpool<T>::threadpool(int thread_number, int max_requests):m_thread_number(t
             delete[] m_threads;
             throw std::exception();
         }
-        if(pthread_detach(m_threads[i])){
+        if(pthread_detach(m_threads[i])){//指示该线程在结束后所占资源自动回收，不需要通过其他线程调用join，调用成功时返回0
             delete[] m_threads;
             throw std::exception();
         }
@@ -67,13 +67,15 @@ template<typename T>
 bool threadpool<T>::append(T* request){
     //操作工作队列时一定要加锁，因为它被所有线程共享
     m_queuelocker.lock();
+
     if(m_workqueue.size() > m_max_requests){
         m_queuelocker.unlock();
         return false;
     }
     m_workqueue.push_back(request);
+
     m_queuelocker.unlock();
-    m_queuestat.post();
+    m_queuestat.post();//信号量(即任务量)加一
     return true;
 }
 
@@ -82,6 +84,29 @@ void* threadpool<T>::worker(void* arg){
     threadpool* pool = (threadpool*)arg;
     pool->run();
     return pool;
+}
+
+template<typename T>
+void threadpool<T>::run(){
+    while(!m_stop){
+        m_queuestat.wait();
+
+        m_queuelocker.lock();
+
+        if(m_workqueue.empty()){
+            m_queuelocker.unlock();
+            continue;
+        }
+        T* request = m_workqueue.front();
+        m_workqueue.pop_front();
+
+        m_queuelocker.unlock();
+        
+        if(!request){
+            continue;
+        }
+        request->process();
+    }
 }
 
 #endif
