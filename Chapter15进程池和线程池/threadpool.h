@@ -33,7 +33,7 @@ class threadpool{
 };
 
 template<typename T>
-threadpool<T>::threadpool(int thread_number, int max_requests):m_thread_number(thread_numbre), m_max_requests(max_resquests), m_stop(false), m_thread(nullptr){
+threadpool<T>::threadpool(int thread_number, int max_requests):m_thread_number(thread_number), m_max_requests(max_requests), m_stop(false), m_threads(nullptr){
     if((thread_number <= 0) || (max_requests <= 0)){
         throw std::exception();
     }
@@ -106,7 +106,7 @@ void threadpool<T>::run(){
             continue;
         }
         request->process();
-    }
+    }//procss执行完即处理完一条请求之后，下次循环继续wait
 }
 
 #endif

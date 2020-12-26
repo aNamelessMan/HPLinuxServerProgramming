@@ -54,7 +54,7 @@ class http_conn{
         //初始化连接
         void init();
         //解析HTTP请求
-        HTTP_CODE process_code();
+        HTTP_CODE process_read();
         //填充HTTP应答
         bool process_write(HTTP_CODE ret);
 
